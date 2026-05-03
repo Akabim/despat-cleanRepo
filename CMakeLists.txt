@@ -21,6 +21,7 @@ add_executable(balatro_checker
     FlushFiveChecker.cpp
     FlushHouseChecker.cpp
     StraightFlushChecker.cpp
+    HandGenerator.cpp
 )
 
 target_include_directories(balatro_checker PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})

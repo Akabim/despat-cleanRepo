@@ -15,10 +15,11 @@
 #include "FlushHouseChecker.h"
 #include "FiveOfAKindChecker.h"
 #include "StraightFlushChecker.h"
+#include "HandGenerator.h"
+#include "ChosenHand.h"
 
 int main() {
     // Initialize chain of responsibility in order from highest to lowest hand
-    
     FlushFiveChecker flushFiveChecker;
     FlushHouseChecker flushHouseChecker;
     FiveOfAKindChecker fiveOfAKindChecker;
@@ -47,88 +48,28 @@ int main() {
     twoPairChecker.setNextChecker(&pairChecker);
     pairChecker.setNextChecker(&highCardChecker);
 
-    std::cout << "=== Balatro Hand Checker - Chain of Responsibility Pattern ===" << std::endl;
-    std::cout << "Status: All hands implemented." << std::endl;
-    std::cout << std::endl;
+    std::cout << "=== Balatro Hand Checker - Randomized Test ===" << std::endl;
+    
+    HandGenerator generator;
+    
+    for (int i = 1; i <= 5; ++i) {
+        std::cout << "--- Run " << i << " ---" << std::endl;
+        
+        Hand hand = generator.generateHand();
+        
+        std::cout << "Cards: ";
+        for (const auto& card : hand.cards) {
+            std::cout << card.toString() << " ";
+        }
+        std::cout << std::endl;
 
-    // Test cases
-    std::cout << "=== Manual Test Cases ===" << std::endl;
-    std::cout << std::endl;
-
-    // Test 1: Royal Flush
-    std::cout << "Test 1: Royal Flush" << std::endl;
-    std::vector<Card> royalFlushCards = {
-        Card(Card::TEN, Card::SPADES),
-        Card(Card::JACK, Card::SPADES),
-        Card(Card::QUEEN, Card::SPADES),
-        Card(Card::KING, Card::SPADES),
-        Card(Card::ACE, Card::SPADES)
-    };
-    std::cout << "Cards: ";
-    for (const auto& card : royalFlushCards) {
-        std::cout << card.toString() << " ";
+        std::string result = flushFiveChecker.checkHand(hand.cards);
+        
+        ChosenHand chosen(hand, result);
+        
+        std::cout << "Detected Hand: " << chosen.getHandType() << std::endl;
+        std::cout << std::endl;
     }
-    std::cout << "\nResult: " << flushFiveChecker.checkHand(royalFlushCards) << std::endl << std::endl;
-
-    // Test 2: Four of a Kind
-    std::cout << "Test 2: Four of a Kind" << std::endl;
-    std::vector<Card> fourOfAKindCards = {
-        Card(Card::SEVEN, Card::HEARTS),
-        Card(Card::SEVEN, Card::DIAMONDS),
-        Card(Card::SEVEN, Card::CLUBS),
-        Card(Card::SEVEN, Card::SPADES),
-        Card(Card::TWO, Card::HEARTS)
-    };
-    std::cout << "Cards: ";
-    for (const auto& card : fourOfAKindCards) {
-        std::cout << card.toString() << " ";
-    }
-    std::cout << "\nResult: " << flushFiveChecker.checkHand(fourOfAKindCards) << std::endl << std::endl;
-
-    // Test 3: Full House
-    std::cout << "Test 3: Full House" << std::endl;
-    std::vector<Card> fullHouseCards = {
-        Card(Card::THREE, Card::HEARTS),
-        Card(Card::THREE, Card::DIAMONDS),
-        Card(Card::THREE, Card::CLUBS),
-        Card(Card::NINE, Card::SPADES),
-        Card(Card::NINE, Card::HEARTS)
-    };
-    std::cout << "Cards: ";
-    for (const auto& card : fullHouseCards) {
-        std::cout << card.toString() << " ";
-    }
-    std::cout << "\nResult: " << flushFiveChecker.checkHand(fullHouseCards) << std::endl << std::endl;
-
-    // Test 4: Flush
-    std::cout << "Test 4: Flush" << std::endl;
-    std::vector<Card> flushCards = {
-        Card(Card::TWO, Card::CLUBS),
-        Card(Card::FIVE, Card::CLUBS),
-        Card(Card::SEVEN, Card::CLUBS),
-        Card(Card::JACK, Card::CLUBS),
-        Card(Card::KING, Card::CLUBS)
-    };
-    std::cout << "Cards: ";
-    for (const auto& card : flushCards) {
-        std::cout << card.toString() << " ";
-    }
-    std::cout << "\nResult: " << flushFiveChecker.checkHand(flushCards) << std::endl << std::endl;
-
-    // Test 5: Straight
-    std::cout << "Test 5: Straight" << std::endl;
-    std::vector<Card> straightCards = {
-        Card(Card::NINE, Card::HEARTS),
-        Card(Card::EIGHT, Card::DIAMONDS),
-        Card(Card::SEVEN, Card::CLUBS),
-        Card(Card::SIX, Card::SPADES),
-        Card(Card::FIVE, Card::HEARTS)
-    };
-    std::cout << "Cards: ";
-    for (const auto& card : straightCards) {
-        std::cout << card.toString() << " ";
-    }
-    std::cout << "\nResult: " << flushFiveChecker.checkHand(straightCards) << std::endl << std::endl;
 
     return 0;
 }

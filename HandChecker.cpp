@@ -5,8 +5,8 @@ void HandChecker::setNextChecker(HandChecker* next) {
 }
 
 std::string HandChecker::passToNext(const std::vector<Card>& cards) {
-    if (nextChecker != nullptr) {
+    if (nextChecker) {
         return nextChecker->checkHand(cards);
     }
-    return "High Card";
+    return "No Hand";
 }
