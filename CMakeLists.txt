@@ -8,6 +8,9 @@ add_executable(balatro_checker
     main.cpp
     Card.cpp
     HandChecker.cpp
+    RoyalFlushChecker.cpp
+    FourOfAKindChecker.cpp
+    FullHouseChecker.cpp
     FlushChecker.cpp
     StraightChecker.cpp
     ThreeOfAKindChecker.cpp
