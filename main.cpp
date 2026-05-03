@@ -8,11 +8,19 @@
 #include "TwoPairChecker.h"
 #include "PairChecker.h"
 #include "HighCardChecker.h"
+#include "FlushFiveChecker.h"
+#include "FlushHouseChecker.h"
+#include "FiveOfAKindChecker.h"
+#include "StraightFlushChecker.h"
 
 int main() {
     // Initialize chain of responsibility in order from highest to lowest hand
     // Current implemented: Flush > Straight > Three of a Kind > Two Pair > Pair > High Card
     
+    FlushFiveChecker flushFiveChecker;
+    FlushHouseChecker flushHouseChecker;
+    FiveOfAKindChecker fiveOfAKindChecker;
+    StraightFlushChecker straightFlushChecker;
     FlushChecker flushChecker;
     StraightChecker straightChecker;
     ThreeOfAKindChecker threeOfAKindChecker;
@@ -21,6 +29,10 @@ int main() {
     HighCardChecker highCardChecker;
 
     // Set up the chain
+    flushFiveChecker.setNextChecker(&flushHouseChecker);
+    flushHouseChecker.setNextChecker(&fiveOfAKindChecker);
+    fiveOfAKindChecker.setNextChecker(&straightFlushChecker);
+    straightFlushChecker.setNextChecker(&flushChecker);
     flushChecker.setNextChecker(&straightChecker);
     straightChecker.setNextChecker(&threeOfAKindChecker);
     threeOfAKindChecker.setNextChecker(&twoPairChecker);
@@ -78,7 +90,7 @@ int main() {
     for (const auto& card : twoPairCards) {
         std::cout << card.toString() << " ";
     }
-    std::cout << "\nResult: " << flushChecker.checkHand(twoPairCards) << std::endl << std::endl;
+    std::cout << "\nResult: " << flushFiveChecker.checkHand(twoPairCards) << std::endl << std::endl;
 
     return 0;
 }
