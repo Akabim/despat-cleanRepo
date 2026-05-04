@@ -63,7 +63,7 @@ int main() {
         }
         std::cout << std::endl;
 
-        std::string result = flushFiveChecker.checkHand(hand.cards);
+        std::string result = flushFiveChecker.checkHand(hand);
         
         ChosenHand chosen(hand, result);
         
