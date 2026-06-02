@@ -7,7 +7,7 @@ std::string SmallBlindState::getName() const {
 }
 
 int SmallBlindState::getTargetScore(int currentAnte) const {
-    return 300 * currentAnte;
+    return 50 * currentAnte;
 }
 
 int SmallBlindState::getRewardMoney() const {
