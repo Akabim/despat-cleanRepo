@@ -39,4 +39,9 @@ add_executable(balatro_checker
     SmallBlindState.cpp
     BigBlindState.cpp
     BossBlindState.cpp
+
+    BonusHandCommand.cpp
+    FreePlayingCardCommand.cpp
+    RewardCommandManager.cpp
+    RewardFactory.cpp
 )

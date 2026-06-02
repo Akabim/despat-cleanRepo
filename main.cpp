@@ -28,6 +28,9 @@
 #include "StraightXMultJoker.h"
 
 #include "BlindManager.h"
+#include "GameSessionState.h"
+#include "RewardCommandManager.h"
+#include "RewardFactory.h"
 
 int main() {
     // Initialize chain of responsibility in order from highest to lowest hand
@@ -59,8 +62,10 @@ int main() {
     twoPairChecker.setNextChecker(&pairChecker);
     pairChecker.setNextChecker(&highCardChecker);
 
-    std::cout << "=== Balatro Hand Checker + Joker System + Blind System ===" << std::endl;
+    std::cout << "=== Balatro Hand Checker + Joker System + Blind System + Reward System ===" << std::endl;
 
+    GameSessionState session;
+    RewardCommandManager rewardManager;
     HandGenerator generator;
 
     // Initialize Joker system
@@ -75,12 +80,22 @@ int main() {
     // Initialize Blind progression system
     BlindManager blindManager;
 
-    // Run randomized test 5 times
+    // Simulate a SKIP on the first blind
+    std::cout << ">>> Decision: Player chooses to SKIP the Small Blind for a reward!" << std::endl;
+    rewardManager.addCommand(RewardTiming::NextBlind, RewardFactory::createReward("BonusHand"));
+    blindManager.advanceToNextBlind(); 
+    std::cout << std::endl;
+
+    // Run randomized test 10 times
     for (int i = 1; i <= 10; ++i) {
         std::cout << "--- Run " << i << " ---" << std::endl;
 
+        // Check for rewards at the start of a new blind/ante
+        rewardManager.executeCommands(RewardTiming::NextBlind, session);
+
         // Display current blind information
         blindManager.displayCurrentBlind();
+        std::cout << "Hands Remaining: " << session.getHandsRemaining() << std::endl;
         std::cout << std::endl;
 
         Hand hand = generator.generateHand();
@@ -134,12 +149,15 @@ int main() {
                 << std::endl;
 
             blindManager.advanceToNextBlind();
+            session.setHandsRemaining(4); // Reset hands for next blind
         }
         else {
-            std::cout << "Blind Failed. Need "
-                << blindManager.getCurrentTargetScore()
-                << " score to clear this blind."
-                << std::endl;
+            session.addHandsRemaining(-1);
+            if (session.getHandsRemaining() <= 0) {
+                std::cout << "Game Over! Out of hands." << std::endl;
+                break;
+            }
+            std::cout << "Remaining Hands: " << session.getHandsRemaining() << std::endl;
         }
 
         std::cout << std::endl;
