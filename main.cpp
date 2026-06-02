@@ -76,7 +76,7 @@ int main() {
     BlindManager blindManager;
 
     // Run randomized test 5 times
-    for (int i = 1; i <= 5; ++i) {
+    for (int i = 1; i <= 10; ++i) {
         std::cout << "--- Run " << i << " ---" << std::endl;
 
         // Display current blind information

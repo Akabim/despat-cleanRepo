@@ -7,7 +7,7 @@ std::string BossBlindState::getName() const {
 }
 
 int BossBlindState::getTargetScore(int currentAnte) const {
-    return 600 * currentAnte;
+    return 150 * currentAnte;
 }
 
 int BossBlindState::getRewardMoney() const {

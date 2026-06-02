@@ -7,7 +7,7 @@ std::string BigBlindState::getName() const {
 }
 
 int BigBlindState::getTargetScore(int currentAnte) const {
-    return 450 * currentAnte;
+    return 100 * currentAnte;
 }
 
 int BigBlindState::getRewardMoney() const {

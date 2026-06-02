@@ -31,10 +31,10 @@ std::string Card::getRankString() const {
 
 std::string Card::getSuitString() const {
     switch (suit) {
-        case HEARTS: return "♥";
-        case DIAMONDS: return "♦";
-        case CLUBS: return "♣";
-        case SPADES: return "♠";
+        case HEARTS: return "-Heart";
+        case DIAMONDS: return "-Diamond";
+        case CLUBS: return "-Club";
+        case SPADES: return "-Spade";
         default: return "?";
     }
 }
