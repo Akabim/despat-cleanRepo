@@ -22,6 +22,12 @@ add_executable(balatro_checker
     FlushHouseChecker.cpp
     StraightFlushChecker.cpp
     HandGenerator.cpp
+    HandScoreTable.cpp
+    ScoreContext.cpp
+    JokerManager.cpp
+    BasicMultJoker.cpp
+    PairMultJoker.cpp
+    StraightXMultJoker.cpp
 )
 
 target_include_directories(balatro_checker PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
