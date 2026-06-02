@@ -1,6 +1,5 @@
 #pragma once
-
-class GameSessionState;
+#include "GameSessionState.h"
 
 class RewardCommand {
 public:
