@@ -1,13 +1,16 @@
 cmake_minimum_required(VERSION 3.10)
-project(BalatroCOR)
 
-set(CMAKE_CXX_STANDARD 17)
+project(balatro_checker)
+
+set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 add_executable(balatro_checker
     main.cpp
+
     Card.cpp
     HandChecker.cpp
+
     RoyalFlushChecker.cpp
     FourOfAKindChecker.cpp
     FullHouseChecker.cpp
@@ -21,13 +24,19 @@ add_executable(balatro_checker
     FlushFiveChecker.cpp
     FlushHouseChecker.cpp
     StraightFlushChecker.cpp
+
     HandGenerator.cpp
+
     HandScoreTable.cpp
     ScoreContext.cpp
+
     JokerManager.cpp
     BasicMultJoker.cpp
     PairMultJoker.cpp
     StraightXMultJoker.cpp
-)
 
-target_include_directories(balatro_checker PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+    BlindManager.cpp
+    SmallBlindState.cpp
+    BigBlindState.cpp
+    BossBlindState.cpp
+)

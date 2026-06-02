@@ -27,6 +27,8 @@
 #include "PairMultJoker.h"
 #include "StraightXMultJoker.h"
 
+#include "BlindManager.h"
+
 int main() {
     // Initialize chain of responsibility in order from highest to lowest hand
     FlushFiveChecker flushFiveChecker;
@@ -57,7 +59,7 @@ int main() {
     twoPairChecker.setNextChecker(&pairChecker);
     pairChecker.setNextChecker(&highCardChecker);
 
-    std::cout << "=== Balatro Hand Checker + Joker System - Randomized Test ===" << std::endl;
+    std::cout << "=== Balatro Hand Checker + Joker System + Blind System ===" << std::endl;
 
     HandGenerator generator;
 
@@ -70,9 +72,16 @@ int main() {
     jokerManager.displayJokers();
     std::cout << std::endl;
 
+    // Initialize Blind progression system
+    BlindManager blindManager;
+
     // Run randomized test 5 times
     for (int i = 1; i <= 5; ++i) {
         std::cout << "--- Run " << i << " ---" << std::endl;
+
+        // Display current blind information
+        blindManager.displayCurrentBlind();
+        std::cout << std::endl;
 
         Hand hand = generator.generateHand();
 
@@ -117,6 +126,21 @@ int main() {
             << " Mult = "
             << scoreContext.getFinalScore()
             << std::endl;
+
+        // Check blind result
+        if (scoreContext.getFinalScore() >= blindManager.getCurrentTargetScore()) {
+            std::cout << "Blind Cleared! Earned $"
+                << blindManager.getCurrentRewardMoney()
+                << std::endl;
+
+            blindManager.advanceToNextBlind();
+        }
+        else {
+            std::cout << "Blind Failed. Need "
+                << blindManager.getCurrentTargetScore()
+                << " score to clear this blind."
+                << std::endl;
+        }
 
         std::cout << std::endl;
     }
