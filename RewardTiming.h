@@ -3,5 +3,7 @@
 enum class RewardTiming {
     Start,
     NextBlind,
-    NextAnte
+    NextAnte,
+    EnterShop,
+    EnterBlind
 };

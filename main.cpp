@@ -3,8 +3,10 @@
 #include <memory>
 #include <sstream>
 #include <cctype>
+#include <algorithm>
 
 #include "Card.h"
+#include "Deck.h"
 #include "HandChecker.h"
 #include "RoyalFlushChecker.h"
 #include "FourOfAKindChecker.h"
@@ -19,7 +21,6 @@
 #include "FlushHouseChecker.h"
 #include "FiveOfAKindChecker.h"
 #include "StraightFlushChecker.h"
-#include "HandGenerator.h"
 #include "ChosenHand.h"
 
 #include "HandScoreTable.h"
@@ -33,52 +34,6 @@
 #include "GameSessionState.h"
 #include "RewardCommandManager.h"
 #include "RewardFactory.h"
-
-Hand getDynamicInputHand() {
-    Hand hand;
-    std::string input;
-    std::cout << "Masukkan 5 kartu (contoh: AH 10D 2S 5C 5H, dipisahkan spasi): ";
-    std::getline(std::cin, input);
-    std::stringstream ss(input);
-    std::string token;
-    
-    while (ss >> token && hand.cards.size() < 5) {
-        if (token.length() < 2) continue;
-        
-        char suitChar = token.back();
-        std::string rankStr = token.substr(0, token.length() - 1);
-        
-        Card::Suit suit;
-        switch (toupper(suitChar)) {
-            case 'H': suit = Card::HEARTS; break;
-            case 'D': suit = Card::DIAMONDS; break;
-            case 'C': suit = Card::CLUBS; break;
-            case 'S': suit = Card::SPADES; break;
-            default: continue;
-        }
-        
-        Card::Rank rank;
-        if (rankStr == "J" || rankStr == "j") rank = Card::JACK;
-        else if (rankStr == "Q" || rankStr == "q") rank = Card::QUEEN;
-        else if (rankStr == "K" || rankStr == "k") rank = Card::KING;
-        else if (rankStr == "A" || rankStr == "a") rank = Card::ACE;
-        else {
-            int r = 0;
-            try { r = std::stoi(rankStr); } catch(...) { continue; }
-            if (r >= 2 && r <= 10) rank = static_cast<Card::Rank>(r);
-            else continue;
-        }
-        
-        hand.cards.push_back(Card(rank, suit));
-    }
-    
-    // Jika format salah, isi sisa kartu dengan 2 Hearts
-    while (hand.cards.size() < 5) {
-        hand.cards.push_back(Card(Card::TWO, Card::HEARTS));
-    }
-    
-    return hand;
-}
 
 int main() {
     // Initialize chain of responsibility in order from highest to lowest hand
@@ -110,114 +65,215 @@ int main() {
     twoPairChecker.setNextChecker(&pairChecker);
     pairChecker.setNextChecker(&highCardChecker);
 
-    std::cout << "=== Balatro Hand Checker + Joker System + Blind System + Reward System ===" << std::endl;
+    std::cout << "=== Balatro Simulator ===" << std::endl;
 
     GameSessionState session;
     RewardCommandManager rewardManager;
-    HandGenerator generator;
 
     // Initialize Joker system
     JokerManager jokerManager;
-    jokerManager.addJoker(std::make_unique<BasicMultJoker>());
-    jokerManager.addJoker(std::make_unique<PairMultJoker>());
-    jokerManager.addJoker(std::make_unique<StraightXMultJoker>());
-
-    jokerManager.displayJokers();
+    // Jokers will be bought in the shop phase
+    // jokerManager.displayJokers();
     std::cout << std::endl;
 
-    // Initialize Blind progression system
     BlindManager blindManager;
-    
-    std::cout << std::endl;
 
-    // Run randomized test 10 times
-    for (int i = 1; i <= 10; ++i) {
-        std::cout << "--- Run " << i << " ---" << std::endl;
-
-        // Check for rewards at the start of a new blind/ante
+    bool gameOver = false;
+    while (!gameOver) {
         rewardManager.executeCommands(RewardTiming::NextBlind, session);
+        rewardManager.executeCommands(RewardTiming::EnterBlind, session);
 
-        // Display current blind information
         blindManager.displayCurrentBlind();
-        std::cout << "Hands Remaining: " << session.getHandsRemaining() << std::endl;
-        std::cout << std::endl;
+        if (session.getBlindScoreMultiplier() > 1.0f) {
+            std::cout << "[BUFF AKTIF] Mega Blind Buff (Score x" << session.getBlindScoreMultiplier() << ")" << std::endl;
+        }
 
         std::string action;
-        std::cout << "Aksi (PLAY / SKIP)? ";
-        std::getline(std::cin, action);
+        std::cout << "Pilih Aksi Blind (PLAY / SKIP)? ";
+        if (!std::getline(std::cin, action)) break;
 
         if (action == "SKIP" || action == "skip") {
              std::cout << ">>> Decision: Player chooses to SKIP!" << std::endl;
-             rewardManager.addCommand(RewardTiming::NextBlind, RewardFactory::createReward("BonusHand"));
+             std::cout << ">>> Mendapatkan 3 Skip Rewards dari Tugas Design Pattern!" << std::endl;
+             
+             rewardManager.addCommand(RewardTiming::EnterShop, RewardFactory::createReward("FreeJoker"));
+             rewardManager.addCommand(RewardTiming::EnterShop, RewardFactory::createReward("DoubleMoney"));
+             rewardManager.addCommand(RewardTiming::EnterBlind, RewardFactory::createReward("MegaBlindBuff"));
+             
              blindManager.advanceToNextBlind();
              std::cout << std::endl;
              continue;
         }
 
-        Hand hand = getDynamicInputHand();
+        // --- PLAY PHASE ---
+        session.setHandsRemaining(4);
+        session.setDiscardsRemaining(3);
+        float currentBlindScore = 0.0f;
+        float targetScore = blindManager.getCurrentTargetScore();
 
-        std::cout << "Cards: ";
-        for (const auto& card : hand.cards) {
-            std::cout << card.toString() << " ";
+        Deck deck;
+        deck.initialize();
+        deck.shuffle();
+
+        std::vector<Card> currentHand;
+        auto drawUpTo8 = [&]() {
+            while (currentHand.size() < 8 && !deck.isEmpty()) {
+                currentHand.push_back(deck.drawCard());
+            }
+        };
+        drawUpTo8();
+
+        bool blindCleared = false;
+
+        while (session.getHandsRemaining() > 0 && !blindCleared) {
+            std::cout << "\n=== TANGANMU ===" << std::endl;
+            for (size_t i = 0; i < currentHand.size(); ++i) {
+                std::cout << "[" << (i+1) << "] " << currentHand[i].toString() << "  ";
+            }
+            std::cout << "\nPlays: " << session.getHandsRemaining() << " | Discards: " << session.getDiscardsRemaining() << std::endl;
+            std::cout << "Skor Saat Ini: " << currentBlindScore << " / " << targetScore << std::endl;
+            
+            std::cout << "Aksi (Contoh: 'P 1 2 3' untuk Play, 'D 1 2' untuk Discard): ";
+            std::string moveInput;
+            if (!std::getline(std::cin, moveInput)) break;
+
+            if (moveInput.empty()) continue;
+
+            char moveType = toupper(moveInput[0]);
+            std::stringstream ss(moveInput.substr(1));
+            std::vector<int> indices;
+            int idx;
+            while (ss >> idx) {
+                if (idx >= 1 && idx <= currentHand.size()) {
+                    indices.push_back(idx - 1);
+                }
+            }
+
+            if (indices.empty()) continue;
+
+            // Remove duplicates and sort descending
+            std::sort(indices.rbegin(), indices.rend());
+            indices.erase(std::unique(indices.begin(), indices.end()), indices.end());
+
+            if (moveType == 'D') {
+                if (session.getDiscardsRemaining() <= 0) {
+                    std::cout << "Sisa Discard habis!" << std::endl;
+                    continue;
+                }
+                
+                for (int i : indices) {
+                    currentHand.erase(currentHand.begin() + i);
+                }
+                session.addDiscardsRemaining(-1);
+                drawUpTo8();
+                continue;
+            } 
+            else if (moveType == 'P') {
+                if (indices.size() > 5) {
+                    std::cout << "Hanya bisa play maksimal 5 kartu!" << std::endl;
+                    continue;
+                }
+
+                Hand playedHand;
+                for (int i : indices) {
+                    playedHand.cards.push_back(currentHand[i]);
+                }
+
+                for (int i : indices) {
+                    currentHand.erase(currentHand.begin() + i);
+                }
+                session.addHandsRemaining(-1);
+
+                // Evaluate
+                std::string result = flushFiveChecker.checkHand(playedHand);
+                ChosenHand chosen(playedHand, result);
+                std::cout << "Detected Hand: " << chosen.getHandType() << std::endl;
+
+                HandScore baseScore = HandScoreTable::getBaseScore(chosen.getHandType());
+                ScoreContext scoreContext(chosen.getHand(), chosen.getHandType(), baseScore);
+                
+                jokerManager.applyJokers(scoreContext);
+                
+                float actualFinalScore = scoreContext.getFinalScore() * session.getBlindScoreMultiplier();
+                std::cout << "Score didapatkan: " << actualFinalScore << std::endl;
+
+                currentBlindScore += actualFinalScore;
+
+                if (currentBlindScore >= targetScore) {
+                     blindCleared = true;
+                } else {
+                     drawUpTo8();
+                }
+            }
         }
-        std::cout << std::endl;
 
-        std::string result = flushFiveChecker.checkHand(hand);
+        if (blindCleared) {
+            std::cout << "Blind Cleared! Earned $" << blindManager.getCurrentRewardMoney() << std::endl;
+            session.addMoney(blindManager.getCurrentRewardMoney());
 
-        ChosenHand chosen(hand, result);
+            std::cout << "\n=== SHOP PHASE ===" << std::endl;
+            std::cout << "Uang sebelum Shop: $" << session.getMoney() << std::endl;
+            rewardManager.executeCommands(RewardTiming::EnterShop, session);
+            std::cout << "Uang setelah trigger EnterShop: $" << session.getMoney() << std::endl;
 
-        std::cout << "Detected Hand: " << chosen.getHandType() << std::endl;
+            bool shopActive = true;
+            while (shopActive) {
+                std::cout << "\nUangmu: $" << session.getMoney() << std::endl;
+                if (session.getIsNextJokerFree()) {
+                    std::cout << "[Shop] Voucher aktif: Joker berikutnya GRATIS!" << std::endl;
+                }
+                std::cout << "Daftar Joker yang bisa dibeli:" << std::endl;
+                int priceBasic = session.getIsNextJokerFree() ? 0 : 4;
+                int pricePair = session.getIsNextJokerFree() ? 0 : 6;
+                int priceStraight = session.getIsNextJokerFree() ? 0 : 8;
 
-        // Get base hand score
-        HandScore baseScore = HandScoreTable::getBaseScore(chosen.getHandType());
+                std::cout << "+---------------+  +---------------+  +---------------+" << std::endl;
+                std::cout << "| 1. BASIC      |  | 2. PAIR       |  | 3. STRAIGHT   |" << std::endl;
+                std::cout << "|    JOKER      |  |    JOKER      |  |    JOKER      |" << std::endl;
+                std::cout << "|    $" << priceBasic << "         |  |    $" << pricePair << "         |  |    $" << priceStraight << "         |" << std::endl;
+                std::cout << "+---------------+  +---------------+  +---------------+" << std::endl;
+                
+                std::cout << "0. Lanjut ke Blind Berikutnya" << std::endl;
+                std::cout << "Pilih Joker untuk dibeli (0-3): ";
+                
+                std::string shopInput;
+                if (!std::getline(std::cin, shopInput)) break;
+                
+                if (shopInput == "0") {
+                    shopActive = false;
+                } else if (shopInput == "1" || shopInput == "2" || shopInput == "3") {
+                    int price = 0;
+                    if (shopInput == "1") price = priceBasic;
+                    else if (shopInput == "2") price = pricePair;
+                    else if (shopInput == "3") price = priceStraight;
 
-        // Create score context that can be modified by Jokers
-        ScoreContext scoreContext(chosen.getHand(), chosen.getHandType(), baseScore);
-
-        std::cout << "Base Score: "
-            << scoreContext.getChips()
-            << " Chips x "
-            << scoreContext.getMult()
-            << " Mult = "
-            << scoreContext.getFinalScore()
-            << std::endl;
-
-        // Apply all active Jokers
-        jokerManager.applyJokers(scoreContext);
-
-        // Display Joker activation logs
-        for (const auto& log : scoreContext.getLogs()) {
-            std::cout << log << std::endl;
-        }
-
-        std::cout << "Final Score: "
-            << scoreContext.getChips()
-            << " Chips x "
-            << scoreContext.getMult()
-            << " Mult = "
-            << scoreContext.getFinalScore()
-            << std::endl;
-
-        // Check blind result
-        if (scoreContext.getFinalScore() >= blindManager.getCurrentTargetScore()) {
-            std::cout << "Blind Cleared! Earned $"
-                << blindManager.getCurrentRewardMoney()
-                << std::endl;
+                    if (session.getMoney() >= price) {
+                        session.addMoney(-price);
+                        if (session.getIsNextJokerFree()) {
+                            session.setIsNextJokerFree(false);
+                        }
+                        
+                        if (shopInput == "1") jokerManager.addJoker(std::make_unique<BasicMultJoker>());
+                        else if (shopInput == "2") jokerManager.addJoker(std::make_unique<PairMultJoker>());
+                        else if (shopInput == "3") jokerManager.addJoker(std::make_unique<StraightXMultJoker>());
+                        
+                        std::cout << ">>> Pembelian Berhasil!" << std::endl;
+                        jokerManager.displayJokers();
+                    } else {
+                        std::cout << ">>> Uang tidak cukup!" << std::endl;
+                    }
+                } else {
+                    std::cout << ">>> Input tidak valid." << std::endl;
+                }
+            }
+            std::cout << "==================\n" << std::endl;
 
             blindManager.advanceToNextBlind();
-            session.setHandsRemaining(4); // Reset hands for next blind
+            session.setBlindScoreMultiplier(1.0f); // consume buff
+        } else {
+            std::cout << "Game Over! You didn't reach the target score." << std::endl;
+            gameOver = true;
         }
-        else {
-            session.addHandsRemaining(-1);
-            if (session.getHandsRemaining() <= 0) {
-                std::cout << "Game Over! Out of hands." << std::endl;
-                break;
-            }
-            std::cout << "Remaining Hands: " << session.getHandsRemaining() << std::endl;
-        }
-
-        std::cout << std::endl;
     }
-
     return 0;
 }

@@ -9,6 +9,7 @@ add_executable(balatro_checker
     main.cpp
 
     Card.cpp
+    Deck.cpp
     HandChecker.cpp
 
     RoyalFlushChecker.cpp
@@ -42,6 +43,9 @@ add_executable(balatro_checker
 
     BonusHandCommand.cpp
     FreePlayingCardCommand.cpp
+    FreeJokerCommand.cpp
+    DoubleMoneyCommand.cpp
+    MegaBlindBuffCommand.cpp
     RewardCommandManager.cpp
     RewardFactory.cpp
 )
