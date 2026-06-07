@@ -1,6 +1,8 @@
 #include <iostream>
 #include <vector>
 #include <memory>
+#include <sstream>
+#include <cctype>
 
 #include "Card.h"
 #include "HandChecker.h"
@@ -31,6 +33,52 @@
 #include "GameSessionState.h"
 #include "RewardCommandManager.h"
 #include "RewardFactory.h"
+
+Hand getDynamicInputHand() {
+    Hand hand;
+    std::string input;
+    std::cout << "Masukkan 5 kartu (contoh: AH 10D 2S 5C 5H, dipisahkan spasi): ";
+    std::getline(std::cin, input);
+    std::stringstream ss(input);
+    std::string token;
+    
+    while (ss >> token && hand.cards.size() < 5) {
+        if (token.length() < 2) continue;
+        
+        char suitChar = token.back();
+        std::string rankStr = token.substr(0, token.length() - 1);
+        
+        Card::Suit suit;
+        switch (toupper(suitChar)) {
+            case 'H': suit = Card::HEARTS; break;
+            case 'D': suit = Card::DIAMONDS; break;
+            case 'C': suit = Card::CLUBS; break;
+            case 'S': suit = Card::SPADES; break;
+            default: continue;
+        }
+        
+        Card::Rank rank;
+        if (rankStr == "J" || rankStr == "j") rank = Card::JACK;
+        else if (rankStr == "Q" || rankStr == "q") rank = Card::QUEEN;
+        else if (rankStr == "K" || rankStr == "k") rank = Card::KING;
+        else if (rankStr == "A" || rankStr == "a") rank = Card::ACE;
+        else {
+            int r = 0;
+            try { r = std::stoi(rankStr); } catch(...) { continue; }
+            if (r >= 2 && r <= 10) rank = static_cast<Card::Rank>(r);
+            else continue;
+        }
+        
+        hand.cards.push_back(Card(rank, suit));
+    }
+    
+    // Jika format salah, isi sisa kartu dengan 2 Hearts
+    while (hand.cards.size() < 5) {
+        hand.cards.push_back(Card(Card::TWO, Card::HEARTS));
+    }
+    
+    return hand;
+}
 
 int main() {
     // Initialize chain of responsibility in order from highest to lowest hand
@@ -79,11 +127,7 @@ int main() {
 
     // Initialize Blind progression system
     BlindManager blindManager;
-
-    // Simulate a SKIP on the first blind
-    std::cout << ">>> Decision: Player chooses to SKIP the Small Blind for a reward!" << std::endl;
-    rewardManager.addCommand(RewardTiming::NextBlind, RewardFactory::createReward("BonusHand"));
-    blindManager.advanceToNextBlind(); 
+    
     std::cout << std::endl;
 
     // Run randomized test 10 times
@@ -98,7 +142,19 @@ int main() {
         std::cout << "Hands Remaining: " << session.getHandsRemaining() << std::endl;
         std::cout << std::endl;
 
-        Hand hand = generator.generateHand();
+        std::string action;
+        std::cout << "Aksi (PLAY / SKIP)? ";
+        std::getline(std::cin, action);
+
+        if (action == "SKIP" || action == "skip") {
+             std::cout << ">>> Decision: Player chooses to SKIP!" << std::endl;
+             rewardManager.addCommand(RewardTiming::NextBlind, RewardFactory::createReward("BonusHand"));
+             blindManager.advanceToNextBlind();
+             std::cout << std::endl;
+             continue;
+        }
+
+        Hand hand = getDynamicInputHand();
 
         std::cout << "Cards: ";
         for (const auto& card : hand.cards) {

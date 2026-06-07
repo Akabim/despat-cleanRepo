@@ -37,63 +37,63 @@ Chain order: RoyalFlush → StraightFlush → FiveOfAKind → ... → HighCard
 
 ---
 
-# Technical Design Document: Balatro Chain of Responsibility & Skip Reward System
+# Dokumen Desain Teknis (TDD): Balatro Chain of Responsibility & Sistem Reward Skip
 
-## 1. Project Overview
-This project is a modular gameplay system inspired by *Balatro*, implementing hand detection, scoring, blind progression, and a skip reward system. The primary goal is to demonstrate the use of Design Patterns to create an extensible and maintainable runtime architecture.
+## 1. Gambaran Proyek
+Proyek ini adalah sistem gameplay modular yang terinspirasi dari *Balatro*, mengimplementasikan deteksi kombinasi kartu, penilaian (scoring), progresi blind, dan sistem hadiah (reward) saat melakukan skip. Tujuan utamanya adalah untuk mendemonstrasikan penggunaan Pola Desain (Design Patterns) untuk menciptakan arsitektur runtime yang mudah dikembangkan dan dikelola.
 
-## 2. Architectural Design Patterns
+## 2. Pola Desain Arsitektur
 
-### 2.1 State Pattern (Blind Progression)
-Used to manage the progression between different "Blinds" (Small Blind, Big Blind, and Boss Blind).
+### 2.1 State Pattern (Progresi Blind)
+Digunakan untuk mengelola progresi antara berbagai "Blind" (Small Blind, Big Blind, dan Boss Blind).
 
-- **Implementation**: `BlindState` (Abstract Interface), `SmallBlindState`, `BigBlindState`, `BossBlindState`.
-- **Logic**: Each state defines its own target score and reward money. The `createNextState()` method handles the transition, including incrementing the **Ante** when moving from a Boss Blind back to a Small Blind.
-- **Benefit**: Decouples the progression logic from the main game loop, making it easy to add new types of blinds (e.g., special Boss Blinds).
+- **Implementasi**: `BlindState` (Interface Abstrak), `SmallBlindState`, `BigBlindState`, `BossBlindState`.
+- **Logika**: Setiap state mendefinisikan target skor dan uang hadiahnya sendiri. Metode `createNextState()` menangani transisi, termasuk menaikkan **Ante** saat berpindah dari Boss Blind kembali ke Small Blind.
+- **Keuntungan**: Memisahkan logika progresi dari loop game utama, membuatnya mudah untuk menambahkan jenis blind baru (misal: Boss Blind khusus).
 
-### 2.2 Command Pattern (Skip Reward System)
-Used to implement the deferred execution of rewards when a player chooses to "SKIP" a blind.
+### 2.2 Command Pattern (Sistem Reward Skip)
+Digunakan untuk mengimplementasikan eksekusi tertunda (deferred execution) dari hadiah ketika pemain memilih untuk "SKIP" sebuah blind.
 
-- **Implementation**: `RewardCommand` (Abstract Interface), `BonusHandCommand`, `FreePlayingCardCommand`.
-- **Deferred Execution**: Commands are created by a `BlindState` but stored in a `RewardCommandManager` rather than being executed immediately.
-- **Timing**: Commands are associated with a `RewardTiming` (Start, NextBlind, NextAnte) and executed only when the specific timing condition is met in the game loop.
+- **Implementasi**: `RewardCommand` (Interface Abstrak), `BonusHandCommand`, `FreePlayingCardCommand`.
+- **Eksekusi Tertunda**: Command dibuat oleh sebuah `BlindState` tetapi disimpan di dalam `RewardCommandManager` alih-alih dieksekusi secara langsung.
+- **Timing (Waktu)**: Command dikaitkan dengan sebuah `RewardTiming` (Start, NextBlind, NextAnte) dan hanya dieksekusi ketika kondisi waktu yang spesifik terpenuhi di dalam loop game.
 
-### 2.3 Chain of Responsibility (Hand Detection)
-Used to detect 13 different types of poker hands in a priority-based sequence.
+### 2.3 Chain of Responsibility (Deteksi Hand)
+Digunakan untuk mendeteksi 13 jenis kombinasi kartu poker dalam urutan berdasarkan prioritas.
 
-- **Implementation**: `HandChecker` (Base Class) and 13 concrete checkers (e.g., `RoyalFlushChecker`, `FlushChecker`, etc.).
-- **Logic**: Each checker evaluates if the current hand matches its criteria; if not, it passes the request to the `nextChecker` in the chain.
+- **Implementasi**: `HandChecker` (Base Class) dan 13 checker konkret (misal: `RoyalFlushChecker`, `FlushChecker`, dll.).
+- **Logika**: Setiap checker mengevaluasi apakah kartu saat ini cocok dengan kriterianya; jika tidak, ia akan mengoper permintaan tersebut ke `nextChecker` dalam rantai tersebut.
 
-## 3. Core Components
+## 3. Komponen Inti
 
-### 3.1 GameSessionState (Runtime State)
-A centralized object that tracks the current state of the game session:
-- **Ante**: Current difficulty level.
-- **Hands Remaining**: Number of plays left for the current blind.
-- **Money**: Player's current currency.
-- **Deck**: Current cards available in the session.
+### 3.1 GameSessionState (Status Runtime)
+Sebuah objek terpusat yang melacak status sesi permainan saat ini:
+- **Ante**: Tingkat kesulitan saat ini.
+- **Hands Remaining**: Sisa kesempatan main untuk blind saat ini.
+- **Money**: Mata uang pemain saat ini.
+- **Deck**: Kartu yang saat ini tersedia di sesi.
 
 ### 3.2 RewardCommandManager
-Manages the lifecycle of reward commands:
-- **addCommand()**: Stores a command with its associated timing.
-- **executeCommands()**: Checks the timing and triggers the `execute()` method of the commands, passing the `GameSessionState` for modification.
+Mengelola siklus hidup dari reward command:
+- **addCommand()**: Menyimpan command beserta waktu eksekusinya.
+- **executeCommands()**: Mengecek waktu dan memicu metode `execute()` dari command, memberikan `GameSessionState` untuk dimodifikasi.
 
 ### 3.3 RewardFactory
-A simple Factory pattern used to instantiate `RewardCommand` objects based on string tags, simplifying the creation process within the `BlindState`.
+Sebuah pola Factory sederhana yang digunakan untuk membuat instansiasi objek `RewardCommand` berdasarkan tag string, menyederhanakan proses pembuatan di dalam `BlindState`.
 
-## 4. Gameplay Flow
+## 4. Alur Gameplay
 
-1. **Start Blind**: The system queries the `BlindManager` for the current `BlindState`.
-2. **Player Action**:
-   - **PLAY**: The player plays hands. `HandChecker` chain detects the hand, `JokerManager` modifies the score, and results are compared against the target score.
-   - **SKIP**: The `BlindState` generates a `RewardCommand`. This command is registered in the `RewardCommandManager`.
-3. **Resolution**:
-   - If cleared, the system moves to the `nextState()`.
-   - If skipped, the system immediately moves to the `nextState()`.
-4. **Reward Execution**: At the start of the next phase (e.g., `NextBlind`), the `RewardCommandManager` executes all pending commands that match the current timing.
+1. **Start Blind**: Sistem menanyakan `BlindState` saat ini kepada `BlindManager`.
+2. **Aksi Pemain**:
+   - **PLAY**: Pemain memainkan kartu. Rantai `HandChecker` mendeteksi kartu, `JokerManager` memodifikasi skor, dan hasil dibandingkan dengan target skor.
+   - **SKIP**: `BlindState` menghasilkan sebuah `RewardCommand`. Command ini didaftarkan di dalam `RewardCommandManager`.
+3. **Resolusi**:
+   - Jika berhasil mengalahkan blind, sistem berpindah ke `nextState()`.
+   - Jika di-skip, sistem segera berpindah ke `nextState()`.
+4. **Eksekusi Reward**: Pada awal fase berikutnya (misal: `NextBlind`), `RewardCommandManager` mengeksekusi semua command tertunda yang cocok dengan waktu saat ini.
 
-## 5. Collaboration & Git Workflow
-The project was developed using a collaborative Git strategy:
-- **Feature Branching**: Distinct features were developed on separate branches (e.g., `sultan`, `feature/skip-reward-command-system`).
-- **Merging**: Regular merges were performed to the `abim` and eventually `main` branches.
-- **Atomic Commits**: Changes were committed in small, logical chunks with descriptive messages to maintain a clean and readable history.
+## 5. Kolaborasi & Alur Kerja Git
+Proyek ini dikembangkan menggunakan strategi Git kolaboratif:
+- **Feature Branching**: Fitur-fitur yang berbeda dikembangkan pada cabang terpisah (misal: `sultan`, `feature/skip-reward-command-system`).
+- **Merging**: Penggabungan reguler dilakukan ke cabang `abim` dan pada akhirnya ke cabang `main`.
+- **Atomic Commits**: Perubahan dikomit dalam bagian kecil dan logis dengan pesan deskriptif untuk menjaga riwayat yang bersih dan mudah dibaca.
