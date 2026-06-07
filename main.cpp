@@ -35,6 +35,24 @@
 #include "RewardCommandManager.h"
 #include "RewardFactory.h"
 
+std::string getRankAscii(Card::Rank r) {
+    if (r == Card::JACK) return "J";
+    if (r == Card::QUEEN) return "Q";
+    if (r == Card::KING) return "K";
+    if (r == Card::ACE) return "A";
+    return std::to_string(static_cast<int>(r));
+}
+
+std::string getSuitAscii(Card::Suit s) {
+    switch (s) {
+        case Card::HEARTS:   return "♥";
+        case Card::DIAMONDS: return "♦";
+        case Card::CLUBS:    return "♣";
+        case Card::SPADES:   return "♠";
+    }
+    return "?";
+}
+
 int main() {
     // Initialize chain of responsibility in order from highest to lowest hand
     FlushFiveChecker flushFiveChecker;
@@ -127,9 +145,37 @@ int main() {
 
         while (session.getHandsRemaining() > 0 && !blindCleared) {
             std::cout << "\n=== TANGANMU ===" << std::endl;
+            
+            for (size_t i = 0; i < currentHand.size(); ++i) std::cout << ".-------. ";
+            std::cout << "\n";
+            
             for (size_t i = 0; i < currentHand.size(); ++i) {
-                std::cout << "[" << (i+1) << "] " << currentHand[i].toString() << "  ";
+                std::string rStr = getRankAscii(currentHand[i].getRank());
+                if (rStr.length() == 1) rStr += " ";
+                std::cout << "| " << rStr << "    | ";
             }
+            std::cout << "\n";
+
+            for (size_t i = 0; i < currentHand.size(); ++i) {
+                std::cout << "|   " << getSuitAscii(currentHand[i].getSuit()) << "   | ";
+            }
+            std::cout << "\n";
+
+            for (size_t i = 0; i < currentHand.size(); ++i) {
+                std::string rStr = getRankAscii(currentHand[i].getRank());
+                if (rStr.length() == 1) rStr = " " + rStr;
+                std::cout << "|    " << rStr << " | ";
+            }
+            std::cout << "\n";
+
+            for (size_t i = 0; i < currentHand.size(); ++i) std::cout << "'-------' ";
+            std::cout << "\n";
+
+            for (size_t i = 0; i < currentHand.size(); ++i) {
+                std::cout << "   [" << (i+1) << "]    ";
+            }
+            std::cout << "\n";
+
             std::cout << "\nPlays: " << session.getHandsRemaining() << " | Discards: " << session.getDiscardsRemaining() << std::endl;
             std::cout << "Skor Saat Ini: " << currentBlindScore << " / " << targetScore << std::endl;
             
