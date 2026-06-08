@@ -5,6 +5,10 @@ project(balatro_checker)
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+if(MSVC)
+    add_compile_options(/utf-8)
+endif()
+
 add_executable(balatro_checker
     main.cpp
 
