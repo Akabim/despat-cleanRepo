@@ -135,8 +135,16 @@ int main() {
 
         std::vector<Card> currentHand;
         auto drawUpTo8 = [&]() {
+            bool drawn = false;
             while (currentHand.size() < 8 && !deck.isEmpty()) {
                 currentHand.push_back(deck.drawCard());
+                drawn = true;
+            }
+            if (drawn) {
+                std::sort(currentHand.begin(), currentHand.end(), [](const Card& a, const Card& b) {
+                    if (a.getRank() != b.getRank()) return a.getRank() > b.getRank(); // Descending by rank
+                    return a.getSuit() > b.getSuit();
+                });
             }
         };
         drawUpTo8();
@@ -239,6 +247,10 @@ int main() {
                 ScoreContext scoreContext(chosen.getHand(), chosen.getHandType(), baseScore);
                 
                 jokerManager.applyJokers(scoreContext);
+                
+                for (const auto& log : scoreContext.getLogs()) {
+                    std::cout << ">>> [JOKER] " << log << std::endl;
+                }
                 
                 float actualFinalScore = scoreContext.getFinalScore() * session.getBlindScoreMultiplier();
                 std::cout << "Score didapatkan: " << actualFinalScore << std::endl;

@@ -1,9 +1,8 @@
 #pragma once
-#include "IJoker.h"
+#include "IScoreObserver.h"
 
-class BasicMultJoker : public IJoker {
+class BasicMultJoker : public IScoreObserver {
 public:
     std::string getName() const override;
-    bool canActivate(const ScoreContext& context) const override;
-    void apply(ScoreContext& context) override;
+    void update(ScoreContext& context) override;
 };

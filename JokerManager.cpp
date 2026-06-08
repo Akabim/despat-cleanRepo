@@ -1,15 +1,13 @@
 #include "JokerManager.h"
 #include <iostream>
 
-void JokerManager::addJoker(std::unique_ptr<IJoker> joker) {
+void JokerManager::addJoker(std::unique_ptr<IScoreObserver> joker) {
     jokers.push_back(std::move(joker));
 }
 
 void JokerManager::applyJokers(ScoreContext& context) {
     for (const auto& joker : jokers) {
-        if (joker->canActivate(context)) {
-            joker->apply(context);
-        }
+        joker->update(context);
     }
 }
 
